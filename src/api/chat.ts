@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { message } = req.body;
+  const { message, history } = req.body;
 
   const SYSTEM_PROMPT = `
 Inti agent STEG 🇹🇳
@@ -14,10 +14,22 @@ Ken ma ta3refch:
 "Samahni, ma 3andi fekra. Ittasel b 1100"
 `;
 
+  // Construire l'historique complet de conversation
+  let conversationHistory = '';
+  
+  if (history && Array.isArray(history)) {
+    history.forEach(msg => {
+      conversationHistory += msg.isUser 
+        ? `<|user|>\n${msg.text}\n\n` 
+        : `<|assistant|>\n${msg.text}\n\n`;
+    });
+  }
+
   const prompt = `
 <|system|>
 ${SYSTEM_PROMPT}
 
+${conversationHistory}
 <|user|>
 ${message}
 
