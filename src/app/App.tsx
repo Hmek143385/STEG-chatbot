@@ -41,10 +41,10 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageIdCounter = useRef(1);
 
   // API Connection status
   useEffect(() => {
-    // Forcer connecté car c'est Vite pas Next.js (les routes /api ne sont pas activées directement)
     setAiConnected(true);
   }, []);
 
@@ -54,20 +54,23 @@ export default function App() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isStreaming, streamingText]);
 
   const getCurrentTime = () => {
     return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const addMessage = (text: string, isUser: boolean) => {
+  const addMessage = (text: string, isUser: boolean, extras?: Partial<Message>) => {
+    messageIdCounter.current += 1;
     const newMessage: Message = {
-      id: messages.length + 1,
+      id: messageIdCounter.current,
       text,
       isUser,
       timestamp: getCurrentTime(),
+      ...extras,
     };
     setMessages((prev) => [...prev, newMessage]);
+    return newMessage;
   };
 
   const handleDownloadPDF = () => {
@@ -150,6 +153,60 @@ export default function App() {
     return { response, showInvoice, showRating, showStats };
   };
 
+  const callLabessAPI = async (prompt: string): Promise<string | null> => {
+    try {
+      // ✅ Utilisation du proxy CORS pour contourner les restrictions en production
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(
+        'https://api-inference.huggingface.co/models/linagora/Labess-7b-chat'
+      );
+
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer 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'
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 300,
+            temperature: 0.7,
+            return_full_text: false,
+          },
+        }),
+      });
+
+      // Gestion des erreurs HTTP
+      if (!response.ok) {
+        if (response.status === 503) {
+          return '503_LOADING';
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Vérification que la réponse est valide
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        return null;
+      }
+
+      let text =
+        data?.[0]?.generated_text ||
+        data?.generated_text ||
+        '';
+
+      // Nettoyage des tokens spéciaux
+      text = text.replace(/<\|.*?\|>/g, '').trim();
+
+      return text || null;
+
+    } catch (error) {
+      console.error('Erreur API Labess:', error);
+      return null;
+    }
+  };
+
   const simulateBotResponse = async (userMessage: string) => {
     setIsTyping(true);
 
@@ -162,14 +219,15 @@ export default function App() {
       lowerMessage.includes('performance') ||
       userMessage.toUpperCase().includes('STEG-');
 
-    // 👉 garder ton système actuel pour UI spéciale
+    // 👉 Garder le système actuel pour UI spéciale
     if (needsSpecialUI) {
       setTimeout(() => {
         setIsTyping(false);
         const { response, showInvoice, showRating, showStats } = getFallbackResponse(userMessage);
 
+        messageIdCounter.current += 1;
         const newMessage: Message = {
-          id: messages.length + 2,
+          id: messageIdCounter.current,
           text: response,
           isUser: false,
           timestamp: getCurrentTime(),
@@ -184,7 +242,16 @@ export default function App() {
       return;
     }
 
-    // 👉 appel API Labess DIRECT DEPUIS FRONTEND (VITE n'a pas de routes API)
+    // 👉 Appel API Labess avec gestion CORS
+    if (!useAI) {
+      setTimeout(() => {
+        setIsTyping(false);
+        const { response } = getFallbackResponse(userMessage);
+        addMessage(response, false);
+      }, 1000);
+      return;
+    }
+
     try {
       setIsStreaming(true);
       setStreamingText('');
@@ -198,11 +265,12 @@ Ken ma ta3refch:
 "Samahni, ma 3andi fekra. Ittasel b 1100"
 `;
 
-      // Construire l'historique complet de conversation
+      // Construire l'historique complet de conversation (max 5 derniers messages)
       let conversationHistory = '';
+      const recentMessages = messages.slice(-5);
       
-      if (messages && Array.isArray(messages)) {
-        messages.forEach(msg => {
+      if (recentMessages && Array.isArray(recentMessages)) {
+        recentMessages.forEach(msg => {
           conversationHistory += msg.isUser 
             ? `<|user|>\n${msg.text}\n\n` 
             : `<|assistant|>\n${msg.text}\n\n`;
@@ -220,45 +288,24 @@ ${userMessage}
 <|assistant|>
 `;
 
-      const response = await fetch(
-        'https://corsproxy.io/?https://api-inference.huggingface.co/models/linagora/Labess-7b-chat',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer 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'
-          },
-          body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-              max_new_tokens: 300,
-              temperature: 0.7,
-              return_full_text: false,
-            },
-          }),
-        }
-      );
+      const apiResponse = await callLabessAPI(prompt);
 
-      if (response.status === 503) {
-        addMessage('System y7adder... ⏳', false);
+      // Gestion modèle en chargement
+      if (apiResponse === '503_LOADING') {
+        setIsStreaming(false);
+        setStreamingText('');
+        setIsTyping(false);
+        addMessage('System y7adder... ⏳ Essayez dans quelques secondes.', false);
         return;
       }
 
-      const data = await response.json();
-
-      let text =
-        data?.[0]?.generated_text ||
-        data?.generated_text ||
-        '';
-
-      text = text.replace(/<\|.*?\|>/g, '').trim();
-      
-      if (!text) {
-        text = 'Mafhemtch 🤔 tnajem t3awed?';
+      // Gestion erreur ou réponse vide
+      if (!apiResponse) {
+        throw new Error('Réponse vide');
       }
 
       // Effet streaming
-      const words = text.split(' ');
+      const words = apiResponse.split(' ');
 
       for (const word of words) {
         setStreamingText(prev => prev + word + ' ');
@@ -269,15 +316,7 @@ ${userMessage}
       setStreamingText('');
       setIsTyping(false);
 
-      setMessages(prev => [
-        ...prev,
-        {
-          id: messages.length + 2,
-          text: text,
-          isUser: false,
-          timestamp: getCurrentTime(),
-        }
-      ]);
+      addMessage(apiResponse, false);
 
     } catch (err) {
       console.error('Erreur API Labess:', err);
@@ -288,6 +327,11 @@ ${userMessage}
 
       const { response } = getFallbackResponse(userMessage);
       addMessage(response, false);
+      
+      toast.error('IA non disponible', {
+        description: 'Utilisation du mode assistant classique',
+        duration: 3000,
+      });
     }
   };
 
