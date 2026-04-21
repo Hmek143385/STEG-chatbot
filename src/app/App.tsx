@@ -186,7 +186,7 @@ export default function App() {
       return;
     }
 
-    // 👉 appel API Labess
+    // 👉 appel API Labess AVEC CONTEXTE COMPLET DE LA CONVERSATION
     try {
       setIsStreaming(true);
       setStreamingText('');
@@ -194,7 +194,10 @@ export default function App() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ 
+          message: userMessage,
+          history: messages 
+        }),
       });
 
       const data = await res.json();
