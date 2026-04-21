@@ -221,7 +221,7 @@ ${userMessage}
 `;
 
       const response = await fetch(
-        'https://api-inference.huggingface.co/models/linagora/Labess-7b-chat',
+        'https://corsproxy.io/?https://api-inference.huggingface.co/models/linagora/Labess-7b-chat',
         {
           method: 'POST',
           headers: {
