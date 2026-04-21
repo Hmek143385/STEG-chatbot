@@ -7,7 +7,6 @@ import { InvoiceCard } from './components/InvoiceCard';
 import { SatisfactionRating } from './components/SatisfactionRating';
 import { StatsCard } from './components/StatsCard';
 import { AdminPage } from './components/admin/AdminPage';
-import { labessAI } from '../services/labessAI';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
 
@@ -43,17 +42,12 @@ export default function App() {
   const [streamingText, setStreamingText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Check Hugging Face Labess AI connection on mount
+  // API Connection status
   useEffect(() => {
-    const checkAIConnection = async () => {
-      const connected = await labessAI.checkConnection();
-      setAiConnected(connected);
-      if (!connected) {
-        // Fallback mode - still works with local responses
-        console.log('[v0] HuggingFace API not available, using fallback mode');
-      }
-    };
-    checkAIConnection();
+    // Check API health on mount
+    fetch('/api/health')
+      .then(res => setAiConnected(res.ok))
+      .catch(() => setAiConnected(false));
   }, []);
 
   const scrollToBottom = () => {
@@ -158,12 +152,11 @@ export default function App() {
     return { response, showInvoice, showRating, showStats };
   };
 
-  // Main response handler with AI integration
   const simulateBotResponse = async (userMessage: string) => {
     setIsTyping(true);
 
-    // Check for special commands that need specific UI responses
     const lowerMessage = userMessage.toLowerCase();
+
     const needsSpecialUI = 
       lowerMessage.includes('fatura') || 
       lowerMessage.includes('facture') ||
@@ -171,53 +164,72 @@ export default function App() {
       lowerMessage.includes('performance') ||
       userMessage.toUpperCase().includes('STEG-');
 
-    // Try AI response if enabled and connected, and not needing special UI
-    if (useAI && aiConnected && !needsSpecialUI) {
-      try {
-        setIsStreaming(true);
-        setStreamingText('');
-        
-        // Use streaming for better UX
-        const aiResponse = await labessAI.chatStream(userMessage, (chunk) => {
-          setStreamingText(prev => prev + chunk);
-        });
-
-        setIsStreaming(false);
-        setStreamingText('');
+    // 👉 garder ton système actuel pour UI spéciale
+    if (needsSpecialUI) {
+      setTimeout(() => {
         setIsTyping(false);
+        const { response, showInvoice, showRating, showStats } = getFallbackResponse(userMessage);
 
         const newMessage: Message = {
           id: messages.length + 2,
-          text: aiResponse,
+          text: response,
           isUser: false,
           timestamp: getCurrentTime(),
+          showInvoice,
+          showRating,
+          showStats,
         };
-        setMessages((prev) => [...prev, newMessage]);
-        return;
-      } catch (error) {
-        console.error('AI Error, falling back:', error);
-        setIsStreaming(false);
-        setStreamingText('');
-        // Fall back to rule-based response
-      }
+
+        setMessages(prev => [...prev, newMessage]);
+      }, 1000);
+
+      return;
     }
 
-    // Rule-based fallback response
-    setTimeout(() => {
-      setIsTyping(false);
-      const { response, showInvoice, showRating, showStats } = getFallbackResponse(userMessage);
+    // 👉 appel API Labess
+    try {
+      setIsStreaming(true);
+      setStreamingText('');
 
-      const newMessage: Message = {
-        id: messages.length + 2,
-        text: response,
-        isUser: false,
-        timestamp: getCurrentTime(),
-        showInvoice,
-        showRating,
-        showStats,
-      };
-      setMessages((prev) => [...prev, newMessage]);
-    }, 1500);
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage }),
+      });
+
+      const data = await res.json();
+
+      const words = data.reply.split(' ');
+
+      for (const word of words) {
+        setStreamingText(prev => prev + word + ' ');
+        await new Promise(r => setTimeout(r, 25));
+      }
+
+      setIsStreaming(false);
+      setStreamingText('');
+      setIsTyping(false);
+
+      setMessages(prev => [
+        ...prev,
+        {
+          id: messages.length + 2,
+          text: data.reply,
+          isUser: false,
+          timestamp: getCurrentTime(),
+        }
+      ]);
+
+    } catch (err) {
+      console.error(err);
+
+      setIsStreaming(false);
+      setStreamingText('');
+      setIsTyping(false);
+
+      const { response } = getFallbackResponse(userMessage);
+      addMessage(response, false);
+    }
   };
 
   const handleSendMessage = () => {
