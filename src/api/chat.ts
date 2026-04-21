@@ -1,80 +1,37 @@
-export default async function handler(req, res) {
+export const config = {
+  runtime: 'edge',
+}
+
+export default async function handler(req: Request) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response('Method not allowed', { status: 405 })
   }
-
-  const { message, history } = req.body;
-
-  const SYSTEM_PROMPT = `
-Inti agent STEG 🇹🇳
-A7ki b derja tounsia, jomel 9sira.
-Friendly w normal.
-
-Ken ma ta3refch:
-"Samahni, ma 3andi fekra. Ittasel b 1100"
-`;
-
-  // Construire l'historique complet de conversation
-  let conversationHistory = '';
-  
-  if (history && Array.isArray(history)) {
-    history.forEach(msg => {
-      conversationHistory += msg.isUser 
-        ? `<|user|>\n${msg.text}\n\n` 
-        : `<|assistant|>\n${msg.text}\n\n`;
-    });
-  }
-
-  const prompt = `
-<|system|>
-${SYSTEM_PROMPT}
-
-${conversationHistory}
-<|user|>
-${message}
-
-<|assistant|>
-`;
 
   try {
+    const body = await req.json()
+    
     const response = await fetch(
       'https://api-inference.huggingface.co/models/linagora/Labess-7b-chat',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer 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'
         },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 300,
-            temperature: 0.7,
-            return_full_text: false,
-          },
-        }),
+        body: JSON.stringify(body),
       }
-    );
+    )
 
-    if (response.status === 503) {
-      return res.json({ reply: 'System y7adder... ⏳' });
-    }
+    const data = await response.json()
+    
+    return new Response(JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
 
-    const data = await response.json();
-
-    let text =
-      data?.[0]?.generated_text ||
-      data?.generated_text ||
-      '';
-
-    text = text.replace(/<\|.*?\|>/g, '').trim();
-
-    return res.json({
-      reply: text || 'Mafhemtch 🤔 tnajem t3awed?',
-    });
-
-  } catch {
-    return res.json({
-      reply: 'Erreur 😅 jarreb ba3d chweya',
-    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'API error' }), { status: 500 })
   }
 }
