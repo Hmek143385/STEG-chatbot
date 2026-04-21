@@ -1,0 +1,207 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  
+  /* STEG Brand Colors */
+  --steg-blue: #2E6AB3;
+  --steg-blue-dark: #1E4A7D;
+  --steg-blue-light: #4A8AD4;
+  --steg-red: #E63946;
+  --steg-red-dark: #C62D39;
+  --steg-red-light: #EF5A67;
+  
+  --background: #ffffff;
+  --foreground: #1a1a2e;
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a2e;
+  --primary: #2E6AB3;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f4f8;
+  --secondary-foreground: #1a1a2e;
+  --muted: #f0f4f8;
+  --muted-foreground: #64748b;
+  --accent: #E63946;
+  --accent-foreground: #ffffff;
+  --destructive: #E63946;
+  --destructive-foreground: #ffffff;
+  --border: rgba(46, 106, 179, 0.15);
+  --input: transparent;
+  --input-background: #f8fafc;
+  --switch-background: #cbd5e1;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #2E6AB3;
+  --chart-1: #2E6AB3;
+  --chart-2: #E63946;
+  --chart-3: #4A8AD4;
+  --chart-4: #1E4A7D;
+  --chart-5: #EF5A67;
+  --radius: 0.625rem;
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #1a1a2e;
+  --sidebar-primary: #2E6AB3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f4f8;
+  --sidebar-accent-foreground: #1a1a2e;
+  --sidebar-border: rgba(46, 106, 179, 0.1);
+  --sidebar-ring: #2E6AB3;
+  
+  /* Success/Warning/Info states */
+  --success: #10b981;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --info: #2E6AB3;
+  --info-foreground: #ffffff;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #4A8AD4;
+  --primary-foreground: #ffffff;
+  --secondary: #334155;
+  --secondary-foreground: #f8fafc;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #EF5A67;
+  --accent-foreground: #ffffff;
+  --destructive: #EF5A67;
+  --destructive-foreground: #ffffff;
+  --border: rgba(74, 138, 212, 0.2);
+  --input: #334155;
+  --ring: #4A8AD4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: #4A8AD4;
+  --chart-2: #EF5A67;
+  --chart-3: #2E6AB3;
+  --chart-4: #60a5fa;
+  --chart-5: #E63946;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #4A8AD4;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: rgba(74, 138, 212, 0.2);
+  --sidebar-ring: #4A8AD4;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* STEG Brand Color Utilities */
+  --color-steg-blue: var(--steg-blue);
+  --color-steg-blue-dark: var(--steg-blue-dark);
+  --color-steg-blue-light: var(--steg-blue-light);
+  --color-steg-red: var(--steg-red);
+  --color-steg-red-dark: var(--steg-red-dark);
+  --color-steg-red-light: var(--steg-red-light);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}
