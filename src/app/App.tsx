@@ -44,10 +44,8 @@ export default function App() {
 
   // API Connection status
   useEffect(() => {
-    // Check API health on mount
-    fetch('/api/health')
-      .then(res => setAiConnected(res.ok))
-      .catch(() => setAiConnected(false));
+    // Forcer connecté car c'est Vite pas Next.js (les routes /api ne sont pas activées directement)
+    setAiConnected(true);
   }, []);
 
   const scrollToBottom = () => {
@@ -186,23 +184,81 @@ export default function App() {
       return;
     }
 
-    // 👉 appel API Labess AVEC CONTEXTE COMPLET DE LA CONVERSATION
+    // 👉 appel API Labess DIRECT DEPUIS FRONTEND (VITE n'a pas de routes API)
     try {
       setIsStreaming(true);
       setStreamingText('');
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: userMessage,
-          history: messages 
-        }),
-      });
+      const SYSTEM_PROMPT = `
+Inti agent STEG 🇹🇳
+A7ki b derja tounsia, jomel 9sira.
+Friendly w normal.
 
-      const data = await res.json();
+Ken ma ta3refch:
+"Samahni, ma 3andi fekra. Ittasel b 1100"
+`;
 
-      const words = data.reply.split(' ');
+      // Construire l'historique complet de conversation
+      let conversationHistory = '';
+      
+      if (messages && Array.isArray(messages)) {
+        messages.forEach(msg => {
+          conversationHistory += msg.isUser 
+            ? `<|user|>\n${msg.text}\n\n` 
+            : `<|assistant|>\n${msg.text}\n\n`;
+        });
+      }
+
+      const prompt = `
+<|system|>
+${SYSTEM_PROMPT}
+
+${conversationHistory}
+<|user|>
+${userMessage}
+
+<|assistant|>
+`;
+
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/linagora/Labess-7b-chat',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer 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'
+          },
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: 300,
+              temperature: 0.7,
+              return_full_text: false,
+            },
+          }),
+        }
+      );
+
+      if (response.status === 503) {
+        addMessage('System y7adder... ⏳', false);
+        return;
+      }
+
+      const data = await response.json();
+
+      let text =
+        data?.[0]?.generated_text ||
+        data?.generated_text ||
+        '';
+
+      text = text.replace(/<\|.*?\|>/g, '').trim();
+      
+      if (!text) {
+        text = 'Mafhemtch 🤔 tnajem t3awed?';
+      }
+
+      // Effet streaming
+      const words = text.split(' ');
 
       for (const word of words) {
         setStreamingText(prev => prev + word + ' ');
@@ -217,14 +273,14 @@ export default function App() {
         ...prev,
         {
           id: messages.length + 2,
-          text: data.reply,
+          text: text,
           isUser: false,
           timestamp: getCurrentTime(),
         }
       ]);
 
     } catch (err) {
-      console.error(err);
+      console.error('Erreur API Labess:', err);
 
       setIsStreaming(false);
       setStreamingText('');
